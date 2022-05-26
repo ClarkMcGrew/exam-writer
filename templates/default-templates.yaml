@@ -1,0 +1,215 @@
+# Define the default templates needed to build the exam.  The templates are
+# defined in the order that the are used to build the exam.
+
+
+# [LaTeX] The ExamTemplate document header section describes how to put
+# the exam together.  It is mostly just a list of the macro order.
+- ExamTemplate: |
+    &{PROLOGUE}
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% PREAMBLE
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    &{PREAMBLE}
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% TITLE PAGE
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    &{TITLEPAGE}
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% FRONT MATTER
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+    &{FRONTMATTER}
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% QUESTION BLOCK
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+    &{QUESTIONBLOCK}
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% BACK MATTER
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+    &{BACKMATTER}
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% EPILOGUE
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+    &{EPILOGUE}
+###########################################################
+
+###########################################################
+# The Prologue defines the class and sets up the latex environment
+# that is expected by the rest of the templates.
+###########################################################
+- Prologue: |
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+    %% Exam generated using exam-writer.py
+    %%
+    %% Student copy is built using 
+    %%
+    %%        pdflatex file.tex
+    %%
+    %% Key copy is build using
+    %%
+    %%        pdflatex "\def\printSolutions{}\input{file.tex}"
+    %%
+    \documentclass[11pt]{article}
+    \usepackage{graphicx}
+  
+    \pagestyle{myheadings}
+    \markboth{
+    &{TITLE}: Copy &{COPY} --- &{LASTNAME}, &{FIRSTNAME} &{SID}}{
+    &{TITLE}: Copy &{COPY} --- &{LASTNAME}, &{FIRSTNAME} &{SID}}
+
+    \textwidth 7truein
+    \textheight 10truein
+    \topmargin -0.75truein
+    \oddsidemargin -0.5truein
+    \evensidemargin 0.5truein
+
+    \newlength{\figwidth}
+    \setlength{\figwidth}{2.0truein}
+    \newlength{\answidth}
+    \setlength{\answidth}{\textwidth}
+    \addtolength{\answidth}{-\figwidth}
+
+    \parindent 0pt
+    \parskip 12pt
+
+    \def\listdesc{
+       \partopsep -\parskip
+       \topsep 0pt 
+       \itemsep 0pt 
+       \parsep 0pt 
+       \leftmargin 0.75truein
+       \rightmargin 0.75truein
+    }
+###########################################################
+
+###########################################################
+# [LaTeX] The Preamble section is included in the document header, and is
+# where the user is expected to include any packages needed to build the
+# exam content.  It must include \begin{document}.
+- Preamble: |
+    % Include packages needed by the exam
+    \begin{document}
+###########################################################
+
+###########################################################
+# [LaTeX] The TitlePage section should define the front page of the exam.
+# Since this is primarily for the "privacy" of the exam, it should probably
+# end with a \newpage.
+- TitlePage: |
+    \begin{center}
+    \Huge
+    &{TITLE}
+    \end{center}
+    \bigskip
+    \rule{\textwidth}{1pt}
+    \begin{center}
+    \Huge
+    &{LASTNAME}, &{FIRSTNAME}\\
+    &{SID}
+    \end{center}
+    \rule{\textwidth}{1pt}
+    \bigskip
+###########################################################
+
+###########################################################
+# [LaTeX] Add after title page, before questions.  This is where any
+# formula sheets should probably be defined.
+- FrontMatter: |
+    This is a block of LaTeX that gets included after the title page and
+    before the questions
+###########################################################
+
+###########################################################
+# [LaTeX] A template for the questions.  This is a block of text that
+# includes the questions and wraps them as necessary
+- QuestionBlock: |
+    \newpage
+    %% This is a block of text that includes the questions and wraps them
+    %% as necessary.
+    &{QUESTIONS}
+###########################################################
+
+###########################################################
+# [LaTeX] Template for the question.  This is a block of LaTeX that is used
+# to create each question that does not include a figure.  The predefined
+# variables are NAME, NUMBER, POINTS, TEXT, SOLUTION and ANSWERS.
+- QuestionTemplate: |
+    \begin{minipage}[h!]{\textwidth}
+    %% This is a block of LaTeX that is used to create each question that
+    %% does not include a figure.  The predefined variables are NAME,
+    %% NUMBER, POINTS, TEXT, SOLUTION and ANSWERS.
+    \textbf{&{NUMBER}.} &{TEXT}
+    \begin{list}{}{\listdesc}
+    &{ANSWERS}
+    \end{list}
+    \end{minipage}
+    \ifdefined\printSolutions
+    \begin{center}
+    \begin{minipage}[h!]{0.9\textwidth}
+    \textbf{SOLUTION:} &{SOLUTION}
+    \end{minipage}
+    \end{center}
+    \fi
+###########################################################
+     
+###########################################################
+# This is a block of LaTeX that is used to create each question that
+# includes a figure.  The predefined variables are NAME, NUMBER, POINTS,
+# TEXT, FIGURE, SOLUTION and ANSWERS
+- QuestionWithFigureTemplate: |
+    \begin{minipage}[h!]{\textwidth}
+    %% This is a block of LaTeX that is used to create each question that
+    %% includes a figure.  The predefined variables are NAME, NUMBER,
+    %% POINTS, TEXT, FIGURE, SOLUTION and ANSWERS
+    \textbf{&{NUMBER}.} &{TEXT}
+    \newline
+    \begin{minipage}[h!]{\answidth}
+    \begin{list}{}{\listdesc}
+    &{ANSWERS}
+    \end{list}
+    \end{minipage}
+    \begin{minipage}[h!]{\figwidth}
+    \includegraphics[width=\figwidth]{&{FIGURE}}
+    \end{minipage}
+    \end{minipage}
+    \ifdefined\printSolutions
+    \begin{center}
+    \begin{minipage}[h!]{0.9\textwidth}
+    \textbf{SOLUTION:} &{SOLUTION}
+    \end{minipage}
+    \end{center}
+    \fi
+###########################################################
+
+###########################################################
+# [LaTeX] Template for one answer option. This is parse with all of the
+# local variables, plus ITEM, TEXT, and CORRECT defined.
+- AnswerTemplate: |-
+    \item[\textbf{&{ITEM}}.]
+    \ifdefined\printSolutions (&{CORRECT}) \fi
+    &{TEXT}
+###########################################################
+        
+###########################################################
+# [LaTeX] The BackMatter is included after the last question and before the
+# Eplilogue.
+- BackMatter: |
+    % Not much to say here
+###########################################################
+
+###########################################################
+# [LaTeX] The Epilogue section finishes out the latex file.  It must
+# include \end{document}
+- Epilogue: |
+    % This can be overridden, but must include \end{document}
+    \end{document}
+###########################################################
+    
+# Local Variables:
+# mode:yaml
+# End:
