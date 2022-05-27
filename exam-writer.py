@@ -17,12 +17,18 @@ parser = argparse.ArgumentParser(
     description="Write an exam based on YAML input files")
 parser.add_argument("file",nargs=1,
                     help="An input file describing the exam")
+parser.add_argument('-a','--all', dest='allQuestions', default=False,
+                    action='store_true',
+                    help="Include all questions and do not reorder")
 parser.add_argument('-d','--dry-run', dest='dryRun', default=False,
                     action='store_true',
                     help="Don't generate output files")
 parser.add_argument('-D','--dump', dest='dumpInput', default=False,
                     action='store_true',
                     help="Dump the input file to the output")
+parser.add_argument('-O','--one-version', dest='oneVersion', default=False,
+                    action='store_true',
+                    help="Build a single version (for debugging exam)")
 parser.add_argument('-P','--pickle', dest='pickle', default=False,
                     action='store_true',
                     help="Load existing exam version from a pickle file")
@@ -116,6 +122,8 @@ class RandomListValue(Value):
     # This constructs a RandomeListValue object with `name`, and a
     # dictionary `inputs`.  The dictionary must contain the keys
     #
+    # - Significant: [int, optional] The number of significant figures
+    #
     # - Values: [list, required] A list of values that will be chosen
     #   by update. For example, inputs can have a value of `{"Values":
     #   ["one", "two", "three"]}`
@@ -129,6 +137,9 @@ class RandomListValue(Value):
         if not type(v) is list: raise ValueError("Must be a list")
         self.values = v
         if "Type" in inputs: self.type = inputs["Type"]
+        self.significant = None
+        if "Significant" in inputs: self.significant=str(inputs["Significant"])
+
 
     ## Not a valid operation on this class
     def set(self, v : str) -> None:
@@ -142,6 +153,9 @@ class RandomListValue(Value):
         v = random.choice(self.values)
         if self.type == "int": v = int(v)
         if self.type == "float": v = float(v)
+        if self.significant is not None:
+            v = SignificantFigures(v,str(self.significant)+"g")
+
         return str(v);
 
 ## An object that chooses a value inside a range.
@@ -154,6 +168,8 @@ class RandomRangeValue(Value):
     #
     # This constructs a `RandomRangeValue` object with `name`, and a
     # dictionary `inputs`.  The dictionary must contain the keys
+    #
+    # - Significant: [int, optional] The number of significant figures
     #
     # - Minimum : [float, required] The minimum value of the range
     #
@@ -174,6 +190,8 @@ class RandomRangeValue(Value):
         if "Step" not in inputs: raise ValueError("Must include Step")
         self.step = float(inputs["Step"])
         if "Type" in inputs: self.type = inputs["Type"]
+        self.significant = None
+        if "Significant" in inputs: self.significant=str(inputs["Significant"])
 
     ## Not a valid operation for this class
     def set(self, v : str) -> None:
@@ -185,6 +203,8 @@ class RandomRangeValue(Value):
         v = self.minimum + self.step*random.randint(0,i)
         if self.type == "int": v = int(v)
         if self.type == "float": v = float(v)
+        if self.significant is not None:
+            v = SignificantFigures(v,str(self.significant)+"g")
         return str(v);
 
 ## Build a dictionary of ConstantValue objects
@@ -511,7 +531,6 @@ class Exam(object):
 
         if "Title" in d: self.title = d["Title"]
         elif "BaseName" in d: self.baseName = d["BaseName"]
-        elif "Copies" in d: self.copies = d["Copies"]
         elif "Constants" in d: self.constants = MakeConsts(d["Constants"])
         elif "Variables" in d: self.variables = MakeValues(d["Variables"])
         elif "Questions" in d: self.questions = Questions(d["Questions"])
@@ -676,7 +695,14 @@ def ExpandExpression(input: str) -> str:
 # into a form suitable for LaTeX.
 def SignificantFigures(input,sigfig) -> str:
     latex = False
+    general = False
     if sigfig == None: sigfig = ""
+    if "g" in str(sigfig):
+        general = True
+        sigfig = sigfig.replace("g","")
+    if "G" in str(sigfig):
+        general = True
+        sigfig = sigfig.replace("G","")
     if "t" in str(sigfig):
         latex = True
         sigfig = sigfig.replace("t","")
@@ -685,7 +711,8 @@ def SignificantFigures(input,sigfig) -> str:
         sigfig = sigfig.replace("t","")
     if len(sigfig) < 1: value = str(input)
     else: value = ("{:#." + str(int(sigfig)) + "g}").format(input)
-    if not latex: return value
+    if general: value = ("{:g}").format(float(value))
+    if not latex: return value.rstrip(".")
     # Turn the value into a LaTeX number
     parse = re.search("([0-9.]+)[Ee]\+([0-9]+)",value)
     if not parse: return value.rstrip(".")
@@ -706,6 +733,7 @@ def SignificantFigures(input,sigfig) -> str:
 #   ["name1", "name2, ...] -- a list of regular expressions
 ################################################################
 def BuildSelection(selection, d: dict) -> list:
+    if selection is None: return list
     if selection == "all": return SelectAll(d)
     if type(selection) is str: return SelectName(selection,d)
     if type(selection) is list: return SelectList(selection,d)
@@ -713,16 +741,15 @@ def BuildSelection(selection, d: dict) -> list:
 
 def SelectAll(selection, d: dict) -> list:
     out = []
-    allCount = 0   # More than one "all" is OK, maybe(!)
     for k in d:
-        if d[k].follows != None: continue
+        if d[k].follows is not None: continue
         out.append(k)
     return out
 
 def SelectName(selection, d: dict) -> list:
     out = []
     for k in d:
-        if d[k].follows != None: continue
+        if d[k].follows is not None: continue
         if re.fullmatch(selection,k) != None: out.append(k)
     return out
 
@@ -731,79 +758,96 @@ def SelectList(selection, d: dict) -> list:
     for name in names:
         out += SelectName(name, d)
 
+## Build a list of key names matching the selection
+#
+# This selects all of the keys in a dictionary that match a selection
+# criteria.  The selection criteria can be None, string, or a list
+# of strings.
+#
+# - selection -- This is a selection criteria that will be applied
+#                     to the dictionary.  The possible values are
+#
+#   + None  : No keys are selected
+#
+#   + "all" : Select all keys in the dictionary, except keys which
+#                         contain "all" in the "after" field
+#
+#   + "name" : A regular expression (usually this is just a name).
+#                        This selects all of the keys matching the
+#                        regular expression, except keys containing
+#                        "all" in the "before" field
+#
+#   + list   : A list of regular expressions following the
+#                        same rules as "name"
+#
+# -d -- A dictionary.  The elements of the dictionary should also be
+#                     dictionaries, and may contain the "before" and
+#                     "after" fields.
+#
+# Return Value: A list of dictionary keys that match the selection
+#         criteria.
 def BuildBefore(selection, d: dict) -> list:
-    """All the keys selected by the Before criteria, and which do not
-    include a follows field.
-
-    Arguments:
-        selection -- This is a selection criteria that will be applied
-                     to the dictionary.  The possible values are
-                 "all" : Select all keys in the dictionary, except
-                         keys which contain "all" in the Before field
-                 "name" : A regular expression for a single name
-                        (usually this is just a constant string)
-                 list   : A list of regular expressions following the
-                        same rules as "name"
-        d -- A dictionary.  The elements of the dictionary should also
-                     be dictionaries, and may contain the "Before"
-                     field.
-
-    Return Value: A list of dictionary keys that should be that match
-         the selection criteria
-    """
+    if selection is None: return list()
     if selection == "all": return BuildBeforeAll(d)
     if type(selection) is str: return BuildBeforeRegEx(selection,d)
     if type(selection) is list: return BuildBeforeList(selection,d)
     raise ValueError("Selection is not valid")
 
-def BuildAfter(selection, d: dict) -> list:
-    """All the keys selected by the After criteria, and which do not
-    include a "Follows" field.
-
-    Arguments:
-        selection -- This is a selection criteria that will be applied
-                     to the dictionary.  The possible values are
-                 "all" : Select all keys in the dictionary, except
-                         keys which contain "all" in the "After" field
-                 "name" : A regular expression for a single name
-                        (usually this is just a constant string)
-                 list   : A list of regular expressions following the
-                        same rules as "name"
-        d -- A dictionary.  The elements of the dictionary should also
-                     be dictionaries, and may contain the "After"
-                     field.
-
-    Return Value: A list of dictionary keys that should be that match
-         the selection criteria.
-    """
-    if selection == "all": return BuildAfterAll(d)
-    if type(selection) is str: return BuildAfterRegEx(selection,d)
-    if type(selection) is list: return BuildAfterList(selection,d)
-    raise ValueError("Selection is not valid")
-
+# Build a list of all keys except those that have entries with: "all"
+# in the before field; or, have a "follows" field.
 def BuildBeforeAll(d: dict) -> list:
     out = []
     allCount = 0   # More than one "all" is OK, maybe(!)
     for k in d:
-        if d[k].before == "all":
+        if d[k].before is not None and d[k].before == "all":
             allCount += 1
             continue
-        if d[k].follows != None: continue
+        if d[k].follows is not None: continue
         out.append(k)
     return out
 
+# Build a list of keys that match the name (a regular expression
+# string).  This will not contain keys for items with "all" in the
+# before field, or which contain a "follows" field
 def BuildBeforeRegEx(name: str, d: dict) -> list:
     out = []
     for k in d:
-        if d[k].before == "all": continue
-        if d[k].follows != None: continue
+        if d[k].before is not None and d[k].before == "all": continue
+        if d[k].follows is not None: continue
         if re.fullmatch(name,k) != None: out.append(k)
     return out
 
+# Apply BuildBeforeRegEx to a list of strings.
 def BuildBeforeList(names: list, d: dict) -> list:
     out = []
     for name in names:
         out += BuildBeforeRegEx(name, d)
+    return out
+
+## Build a list of keys matching the selection
+#
+#    Arguments:
+#        selection -- This is a selection criteria that will be applied
+#                     to the dictionary.  The possible values are
+#                 None  : No keys are selected
+#                 "all" : Select all keys in the dictionary, except
+#                         keys which contain "all" in the "After" field
+#                 "name" : A regular expression for a single name
+#                        (usually this is just a constant string)
+#                 list   : A list of regular expressions following the
+#                        same rules as "name"
+#        d -- A dictionary.  The elements of the dictionary should also
+#                     be dictionaries, and may contain the "After"
+#                     field.
+#
+#    Return Value: A list of dictionary keys that match the selection
+#         criteria.
+def BuildAfter(selection, d: dict) -> list:
+    if selection is None: return list()
+    if selection == "all": return BuildAfterAll(d)
+    if type(selection) is str: return BuildAfterRegEx(selection,d)
+    if type(selection) is list: return BuildAfterList(selection,d)
+    raise ValueError("Selection is not valid")
 
 def BuildAfterAll(d: dict) -> list:
     out = []
@@ -828,13 +872,15 @@ def BuildAfterList(names: list, d: dict) -> list:
     out = []
     for name in names:
         out += BuildAfterRegEx(name, d)
+    return out
 
 ## Choose a list of object from a pool of Question or Answer objects.
 #
 # This builds a list of up to `count` objects from the `pool` based on
 # the `selection`.  If the pool has fewer than `count` objects, then
 # all of them will be used.  The `pool` must be a dictionary of
-# objects with `name` and `follows` fields.
+# objects with `name` and `follows` fields.  Any question that follows
+# a chosen question is also chosen.
 #
 # The `ChooseFromPool()` function makes sure that when an object
 # (i.e. a Question or Answer) is chosen, any follow questions are also
@@ -851,7 +897,7 @@ def ChooseFromPool(pool, selection, count = 999):
     # Find all the questions in the pool that match the selection and
     # shuffle the order.
     choices = BuildSelection(selection,pool)
-    random.shuffle(choices)
+    if not options.allQuestions: random.shuffle(choices)
     # Add questions to the output starting from the first chosen question
     out = []
     for choice in choices:
@@ -867,11 +913,59 @@ def ChooseFromPool(pool, selection, count = 999):
         if len(out) >= count: break
     return out
 
-## order the value in the chosen list.
+## Order the values in the chosen list.
 #
-# This applies the "Before", and "After" constraints.
-def OrderChosen(chosen, pool):
-    return chosen
+# This applies the "Before", "After", and "Follows" constraints to the
+# chosen list.  NOTE: This only looks in the input list, so if there
+# is a question that should follow another, but it is not in the input
+# list, it still won't be in the output list.
+def OrderChosen(input, pool):
+    chosen = input
+    if not options.allQuestions: random.shuffle(chosen)
+    before = dict()
+    following = list()
+    # A list of strings with the "before" constraint applied.  This
+    # starts in the randomized order, and then gets (minimally)
+    # adjusted to meet the constraints.
+    ordered = list()
+    for c in chosen:
+        if pool[c].follows is not None:
+            following.append(c)
+            continue
+        ordered.append(c)
+        candidates = BuildBefore(pool[c].before,pool)
+        # Add the candidates to the before list for c, but not it's
+        # equal to c
+        before[c] = []
+        for cand in candidates:
+            if cand == c: continue
+            before[c].append(cand)
+    for c in chosen:
+        candidates = BuildAfter(pool[c].after,pool)
+        # Add "c" to the before list for any candidate that it comes
+        # after.
+        for cand in candidates:
+                if cand == c: continue
+                if cand not in before: continue
+                before[cand].append(c)
+    # Reorder so all of the "before" constraints are met.
+    notOrderedYet = True
+    while notOrderedYet and len(ordered)>1:
+        notOrderedYet = False
+        for i in range(0,len(ordered)):
+            for j in range(i+1,len(ordered)):
+                if ordered[i] not in before[ordered[j]]: continue
+                notOrderedYet = True
+                ordered[i], ordered[j] = ordered[j], ordered[i]
+                break
+            if notOrderedYet: break
+    # Add back stuff in the follows list.
+    out = []
+    for elem in ordered:
+        out.append(elem)
+        for check in following:
+            if out[-1] in pool[check].follows: out.append(check)
+    return out
 
 ######################################################################
 ## An instance of the exam.
@@ -907,7 +1001,8 @@ class ExamInstance(object):
         # Choose the questions for this version of the exam.
         chosen = []
         for k,n in self.exam.questions.sequence:
-            if "Choose" in n: count = n["Choose"]
+            if options.allQuestions: count = 9999
+            elif "Choose" in n: count = n["Choose"]
             else: count = 9999
             if "Choices" not in n: raise ValueError("Missing question choices")
             chosen += ChooseFromPool(self.exam.pool, n["Choices"], count)
@@ -984,18 +1079,22 @@ class QuestionInstance(object):
         self.UpdateVariables()
         self.AddUniques()
 
-        # Choose and order the answers
+        # Choose and order the answers.  Always select all answers!
         chosen = ChooseFromPool(self.question.answers,".*",9999)
 
         chosen = OrderChosen(chosen,self.question.answers)
 
         # Fill the question list
+        correct = False
         item = "ABCDEFGHIJKLMN"  # Should be from exam!
         for i in range(0,len(chosen)):
             choice = chosen[i]
             a = self.question.answers[choice]
-            if a.correct: self.correctAnswer += item[i]
+            if a.correct:
+                self.correctAnswer += item[i]
+                correct = True
             self.answerList.append(AnswerInstance(self,a,item[i]))
+        if not correct: raise RuntimeError("Question without a correct answer")
 
         answers = ""
         for answer in self.answerList: answers += answer.MakeAnswer()
@@ -1108,6 +1207,8 @@ if not options.pickle:
         copy += 1
         inst = ExamInstance(exam, version, copy)
         exams.append(inst)
+        if options.oneVersion: break
+
 else:
     # Read an existing exam from a PICKLE file
     with open(options.file[0], "rb") as file: exams = pickle.load(file)
