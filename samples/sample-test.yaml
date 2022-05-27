@@ -1,0 +1,746 @@
+#####################
+# A sample exam template to build a set of LaTeX files for exams.  When the
+# latex is generated there can be textual replacements
+#
+#  &{name} : Replace with a string value associated with name.  All
+#                  substitutions happen before expressions are evaluated.
+#
+#  @{expression} : Evaluate the expression using python eval.  The
+#                  expression must result in a string value.  SAFETY NOTE:
+#                  THE EXPRESSION CAN EXECUTE ARBITRARY PYTHON CODE, SO DO
+#                  NOT USE INPUT FILES FROM AN UNTRUSTED SOURCE
+#
+#  @[num]{expression} : Evaluate the expression using python eval.  The
+#                  expression must evaluate to a number, which will be
+#                  rounded to num significant figures and printed in
+#                  scientific format.  The "@" is a reserved sigil in YAML,
+#                  so it cannot begin anything that YAML will interpret as
+#                  a token.  If YAML complains, you can use it in a string
+#                  as (e.g. change @{1+1} to "@{1+1}", note the double
+#                  quotes). See the safety note above.
+
+# This is a title of the exam.  It will provide the ${TITLE} variable
+# definition.
+- Title: A Sample Exam
+
+# Include the predefined default templates
+- Include: default-templates.yaml
+
+# [path] Set the basename for the current exam relative to the current
+# directory.  This is used to build the output file names.
+- BaseName: aSampleBaseName
+
+# Questions to choose from the pool.  The order given here has no meaning!
+# If you want to control the order of the questions, use the question
+# "Before", "After" and "Follows" fields.
+- Questions:
+  - academicIntegrity:
+      Choose: 999
+      Choices: Academic.*
+  - alwaysChooseThree: 
+      Choose: 3      
+      Choices: Question.*
+  - moreQuestions:
+      Choose: 999
+      Choices: More.*
+  - extraCredit:
+      Choose: 1       
+      Choices: EC.*   
+
+# Where the information to generate each exam comes from
+- Versions:
+    CSVFile:
+      Name: 'filename.csv'
+      Fields:
+        - LASTNAME
+        - FIRSTNAME
+        - SID
+    List:
+      Fields:
+        - DUMMY01
+        - LASTNAME
+        - FIRSTNAME
+        - SID
+      Values:
+        - tinker,  Aquilarios, Varen, 000000001
+        - tailor,  Titanborn,  Lyris, 000000002
+        - soldier, Sahan,      Sai,   000000003
+        - spy,     Tharn,      Abnur, 000000004
+        - hero,    Vestige,    NFN,   000000005
+    Defaults:
+      FIRSTNAME: Extra    
+      LASTNAME:  Exam
+      SID:       '000000001'
+      SECTION:   L01
+
+# Include the latex header content for this exam.  This should end with
+# "\begin{document}"
+- Preamble: |
+    % Add the SI Unit definitions.  A lot of installations still have the
+    % older version (i.e. 2.0), so make sure \unit and \qty are defined.
+    \usepackage{siunitx}
+    \ifdefined\unit\else
+    \def\unit{\si}  % used like \unit{\meter}
+    \def\qty{\SI}   % used like \qty{500}{\meter}
+    \fi
+
+    % Add some useful macros
+    \newcommand{\kph}{\unit{\kilo\meter\per\hour}}
+    \newcommand{\mps}{\unit{\meter\per\second}}
+    \newcommand{\mpss}{\unit{\meter\per\second\squared}}
+    
+    % And finally, begin the document
+    \begin{document}
+
+- FrontMatter: |
+    \begin{center}
+    \textbf{Academic Integrity Statement}
+    \end{center}
+    
+    Please sign on side two of the answer sheet (over \textit{General
+    Purpose Answer Sheet}).  Your signature acknowledges that your work on
+    this exam has been done in accordance with an expectation of academic
+    honesty.
+    
+    \begin{center}
+    \textbf{Fine Print}
+    \end{center}
+    \footnotesize
+    
+    This is a closed book exam.  You may use one sheet of notes - $8\frac{1}{2}
+    \times 11$ inches, double sided, handwritten.  ANY manipulation of
+    electronic equipment (iPod, iWatch, phone, laptop computer, taser, arc
+    welder, etc.) other than your calculator is strictly prohibited, and will
+    result in a zero on this exam.
+    
+    Your name and student identification number are printed on this exam.
+    Before you start, enter your name and student number on the answer sheet.
+    Mark 1 in the ``Test Version'' box.  Answer all problems on the bubble scan
+    sheet.  \textbf{If there is more than one correct answer for a given
+    question, choose all of the correct answers.}
+    
+    Some potentially useful expressions and constants are
+    \begin{center}
+    \normalsize
+    \begin{tabular}{|lr||lr|}
+    \hline
+    proton mass && $mProt$ kg &&
+    neutron mass && $mNeut$ kg\\
+    electron mass && $mEle$ && 
+    electron charge && $qEle$ C\\
+    speed of light && &{speedOfLight} && 
+    gravity acceleration && $\qty{&{kGrav}}{\mpss{}}$\\
+    derivative of a power && $\frac{d}{dx} (x^n) = n x^{n-1}$ &&
+    integral of a power && $\int x^n dx = \frac{1}{n+1} x^{n+1}$ \\
+    \hline
+    \end{tabular}
+    \end{center}
+    Each question carries equal weight.  Answer each problem with the answer
+    closest to the correct answer.  When mistakes are found, the problematic
+    question will be excluded from the score.
+    \normalsize
+
+- BackMatter: |
+    \newpage
+    \begin{center}
+    Intentionally blank for scratch paper
+    \end{center}
+    % \newpage
+    % \begin{center}
+    % Intentionally blank for scratch paper
+    % \end{center}
+    % \newpage
+    % \begin{center}
+    % Intentionally blank for scratch paper
+    % \end{center}
+    % \newpage
+    % \begin{center}
+    % Intentionally blank for scratch paper
+    % \end{center}
+    % \newpage
+    % \begin{center}
+    % Intentionally blank for scratch paper
+    % \end{center}
+    % \newpage
+    % \begin{center}
+    % Intentionally blank for scratch paper
+    % \end{center}
+    % \newpage
+    % \begin{center}
+    % Intentionally blank for scratch paper
+    % \end{center}
+    % \newpage
+    % \begin{center}
+    % Intentionally blank for scratch paper
+    % \end{center}
+    % \newpage
+    % \begin{center}
+    % Intentionally blank for scratch paper
+    % \end{center}
+      
+# Global constants are shared everywhere in the exam.  The value of a name
+# (e.g. 'speedOfLight') will be substituted everyplace the constant name
+# (e.g. &{speedOfLight}) occurs.  Technically, a constant is simply a
+# string, but it usually represents some numeric value.  The string contain
+# substitutions (e.g. &{NAME} or @{EXPRESSION}}, but the actual string
+# value won't change before it is added to text.
+- Constants:
+    kLight: "3E+8"
+    speedOfLight: '@[3t]{&{kLight}} \mps{}'
+    kGrav: "9.8"
+    kEM: "9.0e+9"
+    pEle: "8.85e-12"
+    
+# Global variables are shared everywhere in the exam.  The values don't
+# change in a single version of the exam, but should be different on
+# different versions.
+- Variables:
+    globalName:
+      # [str] Updated once per exam version
+      Type: int|float
+      Values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # A list of values
+      Minimum: 0.0 # A range to chose from when values aren't provided
+      Maximum: 1.0 
+      Step: 0.1         # The step inside the range.
+
+# A question to add to the question pool
+- Question:
+    Name: QuestionTemplate
+    Points: 1                   # [int] The number of points for this question
+    ExtraCredit: no      # [yes|no] Is this an extra credit question
+    Before: all|name|list|regex
+    After: all|name|list|regex
+    Follows: QuestionId     # QuestionId must be the previous question
+    Constants:              # Constants, cannot override global constants
+      constantName: value
+      anotherName: another
+    Variables:
+      aVariableName:
+        Type: int|float
+        Values: [1, 2, 3] # A list of values, overrides range and step
+        Range: [0.0, 1.0] # A range to chose from when values aren't provided
+        Step: 0.1         # The step inside the range.
+      anotherVariableName:
+        Type: int|float
+        Values: [1, 2, 3] # A list of values
+        Range: [0.0, 1.0] # A range to chose from when values aren't provided
+        Step: 0.1         # The step inside the range.
+    Unique:
+      aUniqueValue: '&{aVariableName}'
+      anotherUniqueValue: '&{anotherVariableName}'
+    Answers:
+      answerId:
+        Correct: yes|no
+        Before: all|name|list|regex
+        After: all|name|list|regex
+        Follows: answerId
+        Text: # A block of latex used for the answer
+    Figure: pdffile.pdf # [path] An optional figure (pdf)
+    Text:               # [LaTeX] The question text
+    Solution:           # [LaTeX] The solution
+
+- Question:
+    Name: AcademicIntegrity
+    Before: all
+    Points: 1
+    Text: |
+      I acknowledge the following statements (Choose all that you agree with):
+    Answers:
+      First:
+        Correct: yes
+        Text: |
+          All of my answers to this exam represent my own work.
+      Second:
+        Correct: yes
+        Text: |
+          I have read and respect the statement of academic honesty.
+      Third: 
+        Correct: yes
+        Text: |
+          I will keep the content of the exam confidential until the answer
+          key is published.
+    Solution: |
+      All of the answers are correct and should be selected
+
+- Question:
+    Name: AcademicSignature
+    Follows: AcademicIntegrity
+    Text: |
+      Have you signed side two of the answer sheet over the words
+      \textit{General Purpose Answer Sheet} to acknowledge that your work
+      on this exam has been done in accordance with an expectation of
+      academic honesty?
+      
+    Answers:
+      A1:
+        Correct: yes
+        Text: |
+          Yes! I have signed side two of the answer sheet over the words
+          \textit{General Purpose Answer Sheet!}
+      A2:
+        Correct: no
+        Text: No I haven't.
+      A3:
+        Correct: no
+        Text: That's to much trouble.
+      A4:
+        Correct: no
+        Text: What answer sheet?
+      A5:
+        Correct: no
+        Text: I don't want a free point.
+    Solution: You need to sign the answer sheet.
+      
+- Question:
+    Name: QuestionTheFirst
+    Points: 1
+    ExtraCredit: no
+    Text: |
+      What is your name?
+    Answers:
+      FirstFirstName:
+        Correct: yes
+        Text: Arthur
+      FirstSecondName:
+        Correct: no
+        Text: That's easy
+      FirstThirdName:
+        Correct: no
+        Text: 'Uhh'
+        
+- Question:
+    Name: QuestionTheSecond
+    Points: 1
+    ExtraCredit: no
+    Text: |
+      What is your quest?
+    Answers:
+      SecondFirstName:
+        Correct: yes
+        Text: 'Find the holy grail'
+      SecondSecondName:
+        Correct: no
+        Text: 'Find a peanut butter sandwich'
+      SecondThirdName:
+        Correct: no
+        Text: We don't need no stinkin' quest
+        
+- Question:
+    Name: QuestionTheThird
+    Points: 1
+    ExtraCredit: no
+    Text: |
+      What is your favorite color?
+    Answers:
+      ThirdFirstName:
+        Correct: yes
+        Text: 'Blue'
+      ThirdSecondName:
+        Correct: no
+        Text: 'Yellow'
+      ThirdThirdName:
+        Correct: no
+        Text: 'Red'
+        
+- Question:
+    Name: QuestionTheFourth
+    Points: 1
+    ExtraCredit: no
+    Text: |
+      What is the capitol of Assyria?
+    Variables:
+      capital1:
+        Values:
+          - Assur
+          - Kar-Tukulti-Ninurta
+          - Nimrud
+          - Dur-Sharrukin
+          - Nineveh
+          - Haran
+      capital2:
+        Values:
+          - Assur
+          - Kar-Tukulti-Ninurta
+          - Nimrud
+          - Dur-Sharrukin
+          - Nineveh
+          - Haran
+      capital3:
+        Values:
+          - Assur
+          - Kar-Tukulti-Ninurta
+          - Nimrud
+          - Dur-Sharrukin
+          - Nineveh
+          - Haran
+    Unique:
+      answer1: '&{capital1}'
+      answer2: '&{capital2}'
+      answer3: '&{capital3}'
+      answer4: '&{speedOfLight}'
+    Answers:
+      FourthFirstName:
+        Correct: yes
+        Text: "During which dynasty?"
+      FourthSecondName:
+        Correct: no
+        Text: '&{answer1}'
+      FourthThirdName:
+        Correct: no
+        Text: '&{answer2}'
+      FourthFourthName:
+        Correct: no
+        Text: '&{answer3}'
+        
+- Question:
+    Name: QuestionTheFifth
+    Points: 1
+    ExtraCredit: no
+    Text: |
+      What is the air-speed velocity of an unladen swallow?
+    Answers:
+      FifthFirst:
+        Correct: yes
+        Text: "One moment"
+      FifthSecond:
+        Correct: no
+        Text: "42"
+      FifthThird:
+        Correct: no
+        Text: "Are the carrying a coconut?"
+        
+- Question:
+    Name: QuestionTheSixth
+    Points: 1
+    ExtraCredit: no
+    Follows: QuestionTheFifth
+    Text: |
+      Is it an African or European swallow?
+    Answers:
+      SixthFirst:
+        Correct: yes
+        Text: Uh, I don't know... AAAAAHHHH!!!
+      SixthSecond:
+        Correct: no
+        Text: "42"
+      SixthThird:
+        Correct: no
+        Text: "Are the carrying a coconut?"
+   
+- Question:
+    Name: MoreQuestions01
+    Text: |
+      You're friend is trying to convince you that there is a relationship
+      between mass ($m$), acceleration ($a$), velocity ($v$) and elapsed time
+      ($t$) and a quantity they call the vibrancy (which is defined as mass
+      times velocity squared).  Use dimensional analysis to decide which
+      relation might be correct.
+      
+    Answers:
+      A1:
+        Correct: yes
+        Text: $m a v t = m v^2$
+      A2:
+        Correct: no
+        Text: $\frac{1}{2} m a t^2 = m v^2$
+      A3:
+        Correct: no
+        Text: $m v t^2 = m v^2$
+      A4:
+        Correct: no
+        Text: $m a x t = m v^2$
+      A5:
+        Correct: no
+        After: all
+        Text: None of the above.
+        
+    Solution: |
+      The dimensions for each value are $[M]$ for mass, $[T]$ for time,
+      $[L]/[T]$ for velocity and $[L]/[T]^2$ for acceleration.  So trying
+      each possible answer:
+      \begin{equation}
+      m a v t = m v^2
+      \rightarrow [M] \frac{[L]}{[T]^2} \frac{[L]}{[T]} [T]
+      \equiv [M] \frac{[L]^2}{[T]^2} 
+      \label{eq:q1answer}
+      \end{equation}
+    
+      \begin{equation}
+      \frac{1}{2} m a t^2 = m v^2
+      \rightarrow [M] \frac{[L]}{[T]^2} [T]^2
+      \not\equiv [M] \frac{[L]^2}{[T]^2} 
+      \end{equation}
+
+      \begin{equation}
+      m v t^2 = m v^2
+      \rightarrow [M] \frac{[L]}{[T]^2} [T]^2
+      \not\equiv [M] \frac{[L]^2}{[T]^2} 
+      \end{equation}
+      
+      \begin{equation}
+      m a x t = m v^2
+      \rightarrow [M] \frac{[L]}{[T]^2} [T]^2
+      \not\equiv [M] \frac{[L]^2}{[T]^2} 
+      \end{equation}
+
+      So the solution is Equation~\ref{eq:q1answer}.
+    
+- Question:
+    Name: MoreQuestions02
+    Text: |
+      You are told that the charge of an electron, $e$, has dimensions $[Q]$,
+      and that a volt, $V$, has dimensions $\frac{[M][L^2]}{[Q][T]^2}$, the
+      speed of light has dimensions $[L]/[T]$, and momentum has dimensions of
+      $[M][L]/[T]$.  Use dimensional analysis to determine how to express the
+      momentum in terms of $e$, $V$, and $c$.
+      
+    Answers:
+      A1:
+        Correct: yes
+        Text: $\frac{e V}{c}$
+      A2:
+        Correct: no
+        Text: $\frac{e V}{c^2}$
+      A3:
+        Correct: no
+        Text: $e V c$
+      A4:
+        Correct: no
+        Text: $e V$
+      A5:
+        Correct: no
+        After: all
+        Text: None of the above
+        
+    Solution: |
+      The best way to try this is to figure out the dimensions of each case. 
+      \begin{equation}
+      \frac{e V}{c}
+      \Rightarrow [Q] \frac{[M][L^2]}{[Q][T]^2} \frac{[T]}{[L]}
+      = \frac{[M][L]}{[T]} 
+      \equiv [M] \frac{[L]}{[T]} 
+      \label{eq:q2answer}
+      \end{equation}
+      
+      \begin{equation}
+      \frac{e V}{c^2}
+      \Rightarrow [Q] \frac{[M][L^2]}{[Q][T]^2} \frac{[T]^2}{[L]^2}
+      = \frac{[M][L]^2}{[T]^2} 
+      \not\equiv [M] \frac{[L]}{[T]} 
+      \end{equation}
+      
+      \begin{equation}
+      e V c
+      \Rightarrow [Q] \frac{[M][L^2]}{[Q][T]^2} \frac{[L]}{[T]}
+      = \frac{[M][L]^3}{[T]^3} 
+      \not\equiv [M] \frac{[L]}{[T]} 
+      \end{equation}
+      
+      \begin{equation}
+      e V
+      \Rightarrow [Q] \frac{[M][L^2]}{[Q][T]^2}
+      = \frac{[M][L]^2}{[T]^2} 
+      \not\equiv [M] \frac{[L]}{[T]} 
+      \end{equation}
+      
+      So the correct relation is Equation~\ref{eq:q2answer}.
+    
+- Question:
+    Name: MoreQuestions03
+    After: [MoreQuestions02, MoreQuestions01]
+    Variables:
+      vDist:
+        Significant: 2
+        Minimum: 20
+        Maximum: 40
+        Step: 2
+      vSpace:
+        Significant: 2
+        Minimum: 10
+        Maximum: 30
+        Step: 1
+        
+    Text: |
+      Estimate the number of cars per lane that are stuck on the LIE during
+      rush hour.  Assume that the evening traffic coming out of the city on
+      the LIE stretches for \qty{&{vDist}}{\kilo\meter}, and the average space
+      between cars is \qty{&{vSpace}}{\meter}.
+
+    Unique:
+      answer1: '@[2t]{1.0*&{vDist}*1000/&{vSpace}}'
+      answer2: '@[2t]{1.0*&{vDist}/&{vSpace}}'
+      answer3: '@[2t]{1.0*&{vDist}*&{vSpace}}'
+      answer4: '@[2t]{1.0*&{vDist}*1000}'
+      answer5: '@[2t]{1.0*&{vSpace}*1000}'
+      
+    Answers:
+      A1:
+        Correct: yes
+        Text: $&{answer1}$ cars per lane
+      A2:
+        Correct: no
+        Text: $&{answer2}$ cars per lane
+      A3:
+        Correct: no
+        Text: $&{answer3}$ cars per lane
+      A4:
+        Correct: no
+        Text: $&{answer4}$ cars per lane
+      A5:
+        Correct: no
+        Text: $&{answer5}$ cars per lane
+        
+    Solution: |
+      Since the distance between cars is \qty{&{vSpace}}{\meter}, the
+      number of cars per meter is
+      $\left(\frac{\qty{1}{car}}{\qty{&{vSpace}}{\meter}}\right)$.  Since
+      the traffic stretchs for \qty{&{vDist}}{\kilo\meter} we can find the
+      total number of cars
+
+      \begin{equation}
+      \left( \frac{\qty{&{vDist}}{\kilo\meter}}{\qty{1}{lane}} \right)
+      \left( \frac{\qty{1000}{\meter}}{\qty{1}{\kilo\meter}} \right)
+      \left( \frac{\qty{1}{car}}{\qty{&{vSpace}}{\meter}} \right)
+      = \qty{@[2]{&{vDist}*1000.0/&{vSpace}}}{{cars}\per{}{lane}}.
+      \end{equation}
+      
+- Question:
+    Name: MoreQuestions04
+    Before: MoreQuestions05
+    Variables:
+      vRun:
+        Minimum: 1
+        Maximum: 3
+        Step: 0.5
+      vShip:
+        Minimum: 5
+        Maximum: 10
+        Step: 0.5
+        
+    Text: |
+      A person is running toward the back of a ship at
+      \qty{&{vRun}}{\mps{}} and the ship is moving ahead with a velocity
+      relative to the water of \qty{&{vShip}}{\mps{}}.  What speed is the person
+      traveling at relative to the water?
+      
+    Answers:
+      A1: 
+        Correct: yes
+        Text: \qty{@{abs(-&{vRun}+&{vShip})}}{\mps{}}
+      A2:
+        Correct: no
+        Text: \qty{@{abs(&{vRun}-&{vShip})}}{\kph{}}
+      A3:
+        Correct: no
+        Text: \qty{@{abs(&{vRun}+&{vShip})}}{\mps{}}
+      A4:
+        Correct: no
+        Text: \qty{@{abs(&{vRun})}}{\mps{}}
+      A5:
+        Correct: no
+        Text: $\qty{@{-&{vRun}-&{vShip}}}{\mps{}}$
+        
+    Solution: |
+      Choose the ship as the reference frame, and define the forward
+      direction as positive.  In this case, the person is running with a
+      velocity of $v_p = -\qty{&{vRun}}{\mps{}}$ relative to the ship.  The
+      velocity of the ship relative to the water is $v_s =
+      \qty{&{vShip}}{\mps{}}$, so the persion is traveling at $v'_p = v_p +
+      v_s = \qty{&{vRun}}{\mps{}} + \qty{&{vShip}}{\mps{}} =
+      \qty{@{-&{vRun}+&{vShip}}}{\mps{}}$ relative to the water.
+      
+- Question:
+    Name: MoreQuestions05
+    Variables:
+      vRun:
+        Minimum: 1
+        Maximum: 3
+        Step: 1
+      vAShip:
+        Minimum: 5
+        Maximum: 10
+        Step: 1
+      vBShip:
+        Minimum: 5
+        Maximum: 10
+        Step: 1
+        
+    Text: |
+      A person is running toward the back of a ship at $&{vRun}\mps{}$ and
+      the ship is moving ahead with a velocity relative to the water of
+      $&{vAShip}\;\mps{}$.  At the same time, another ship traveling in the
+      opposite direction is moving ahead with a speed of
+      $&{vBShip}\;\mps{}$ with a second person on board running forward at
+      $&{vRun}\;\mps{}$.  What speed is the first person traveling relative
+      to the second person?
+      
+    Answers:
+      A1:
+        Correct: yes
+        Text: $@{abs(-&{vRun} - &{vBShip} - &{vAShip} + &{vRun})}\;\mps{}$
+      A2:
+        Correct: no
+        Text: $@{abs(+&{vRun} + &{vBShip} + &{vAShip} + &{vRun})}\;\mps{}$
+      A3:
+        Correct: no
+        Text: $@{abs(+&{vRun} - &{vBShip} + &{vAShip} + &{vRun})}\;\mps{}$
+      A4:
+        Correct: no
+        Text: $@{abs(+&{vRun} - &{vBShip} - &{vAShip} + &{vRun})}$ \mps{}
+      A5:
+        Correct: no
+        Text: $@{abs(-&{vRun} + &{vBShip} - &{vAShip} +  &{vRun})}$ \mps{}
+        
+    Solution: |
+      Choosing the coordinate system for the water to point in the
+      direction the first ship is traveling, the velocity of the first ship
+      relative to the water is $v_a = &{vAShip}\mps{}$, the velocity of the
+      second ship is $v_b = - &{vBShip}\;\mps{}$.  In the frame of the
+      first ship, the velocity of the second ship will be $v_{ba} = v_b -
+      v_a = @{-&{vBShip} - &{vAShip}}\;\mps{}$.  The velocity of the first
+      person in the reference frame of the first ship is $v_{1a} = -
+      &{vRun}$, and the velocity of the second person the second ship is
+      $v_{2b} = &{vRun}$.  The velocity of the second persion relative to
+      the first ship will be $v_{2a} = -v_{2b} + v_{ab} = @{-&{vRun} -
+      &{vBShip} - &{vAShip}}\mps{}$.  Finally, the velocity of the second
+      person relative to the first person is $v_{21} = v_{2a} - v_{1a} =
+      @{-&{vRun} - &{vBShip} - &{vAShip} + &{vRun}}\;\mps{}$.  The speed is
+      $|v_{21}| = @{abs(-&{vRun} - &{vBShip} - &{vAShip} +
+      &{vRun})}\;\mps{}$.
+      
+- Question:
+    Name: MoreQuestions06
+    Text: |
+      A certain object is accelerating at $a = \alpha t$ for times larger
+      than zero.  Find the velocity as a function of time.
+      
+    Answers:
+      A1:
+        Correct: yes
+        Text: $v = v_o + \frac{1}{2} \alpha t^2$
+      A2:
+        Correct: no
+        Text: $v = v_o + \alpha$
+      A3:
+        Correct: no
+        Text: $v = v_o + \alpha t$
+      A4:
+        Correct: no
+        Text: $v = v_o t + \frac{1}{2} \alpha t^2$
+      A5:
+        Correct: no
+        After: all
+        Text: None of the above.
+    
+    Solution: |
+      Since the acceleration is
+      \begin{equation}
+      a = \frac{d v}{dt} \Leftrightarrow dv = a dt
+      \Leftrightarrow
+      v = \int a dt = \int \alpha t dt = v_o + \frac{1}{2} \alpha t^2
+      \end{equation}
+      where the constant of integration is $v_o$.
+      
+# Local Variables:
+# mode:yaml
+# End:
