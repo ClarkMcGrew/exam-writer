@@ -6,9 +6,13 @@
 #                  substitutions happen before expressions are evaluated.
 #
 #  @{expression} : Evaluate the expression using python eval.  The
-#                  expression must result in a string value.  SAFETY NOTE:
-#                  THE EXPRESSION CAN EXECUTE ARBITRARY PYTHON CODE, SO DO
-#                  NOT USE INPUT FILES FROM AN UNTRUSTED SOURCE
+#                  expression must result in a string value.  The "@" is a
+#                  reserved sigil in YAML, so it cannot begin anything that
+#                  YAML will interpret as a token.  If YAML complains, you
+#                  can use it in a string as (e.g. change @{1+1} to
+#                  "@{1+1}", note the double quotes).  SAFETY NOTE: THE
+#                  EXPRESSION CAN EXECUTE ARBITRARY PYTHON CODE, SO DO NOT
+#                  USE INPUT FILES FROM AN UNTRUSTED SOURCE
 #
 #  @[num]{expression} : Evaluate the expression using python eval.  The
 #                  expression must evaluate to a number, which will be
@@ -23,16 +27,20 @@
 # definition.
 - Title: A Sample Exam
 
-# Include the predefined default templates
+# [path] Include the predefined default templates.  The defaults should
+# (probably) always be included.
 - Include: default-templates.yaml
 
-# [path] Set the basename for the current exam relative to the current
-# directory.  This is used to build the output file names.
+# [path fragment] Set the basename for the current exam relative to the
+# current directory.  This is used to build the output file names.
 - BaseName: aSampleBaseName
 
 # Questions to choose from the pool.  The order given here has no meaning!
-# If you want to control the order of the questions, use the question
-# "Before", "After" and "Follows" fields.
+# The dictionary names have no meaning!  If you want to control the order
+# of the questions, use the question "Before", "After" and "Follows"
+# fields.  The "Choose" element says how many of each time will be chosen
+# (up to the number available).  The "Choices" element is a regular
+# expression for which question names will be chosen.
 - Questions:
   - academicIntegrity:
       Choose: 999
@@ -49,13 +57,13 @@
 
 # Where the information to generate each exam comes from
 - Versions:
-    CSVFile:
+    CSVFile:    # A CSV file.  The fields in the files need to be defined
       Name: 'filename.csv'
       Fields:
         - LASTNAME
         - FIRSTNAME
         - SID
-    List:
+    List:      # A list to fake the CSV file.
       Fields:
         - DUMMY01
         - LASTNAME
@@ -67,14 +75,14 @@
         - soldier, Sahan,      Sai,   000000003
         - spy,     Tharn,      Abnur, 000000004
         - hero,    Vestige,    NFN,   000000005
-    Defaults:
+    Defaults:  # Default values (use this while writing the exam)
       FIRSTNAME: Extra    
       LASTNAME:  Exam
       SID:       '000000001'
       SECTION:   L01
 
-# Include the latex header content for this exam.  This should end with
-# "\begin{document}"
+# [LATEX] Include the latex header content for this exam.  This should end with
+# "\begin{document}".  This is a good place to add latex macro definitions.
 - Preamble: |
     % Add the SI Unit definitions.  A lot of installations still have the
     % older version (i.e. 2.0), so make sure \unit and \qty are defined.
@@ -92,6 +100,9 @@
     % And finally, begin the document
     \begin{document}
 
+
+# [LaTeX] Add after title page, before questions.  This is where any
+# formula sheets should probably be defined.
 - FrontMatter: |
     \begin{center}
     \textbf{Academic Integrity Statement}
@@ -140,6 +151,8 @@
     question will be excluded from the score.
     \normalsize
 
+# [LaTeX] The BackMatter is included after the last question and before the
+# Epilogue.  This is adding scratch paper to the back of the exam.
 - BackMatter: |
     \newpage
     \begin{center}
@@ -185,25 +198,38 @@
 # substitutions (e.g. &{NAME} or @{EXPRESSION}}, but the actual string
 # value won't change before it is added to text.
 - Constants:
-    kLight: "3E+8"
-    speedOfLight: '@[3t]{&{kLight}} \mps{}'
+    kLight: "3E+8"    # The numeric value for the speed of light
+    speedOfLight: '@[3t]{&{kLight}} \mps{}'   # A printable speed of light
     kGrav: "9.8"
     kEM: "9.0e+9"
     pEle: "8.85e-12"
     
 # Global variables are shared everywhere in the exam.  The values don't
 # change in a single version of the exam, but should be different on
-# different versions.
+# different exam versions.
 - Variables:
-    globalName:
+    globalIntegerList:
       # [str] Updated once per exam version
-      Type: int|float
+      Type: int
       Values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # A list of values
+    globalIntegerRange:
+      # [str] Updated once per exam version
+      Type: int
+      Minimum: 0 # A range to chose from when values aren't provided
+      Maximum: 10 
+      Step: 1     # The step inside the range.
+    globalFloatList:
+      # [str] Updated once per exam version
+      Type: float
+      Values: [1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9, 10.1] 
+    globalFloatRange:
+      # [str] Updated once per exam version
+      Type: int
       Minimum: 0.0 # A range to chose from when values aren't provided
       Maximum: 1.0 
       Step: 0.1         # The step inside the range.
 
-# A question to add to the question pool
+# A question to add to the question pool.  This on't be used.
 - Question:
     Name: QuestionTemplate
     Points: 1                   # [int] The number of points for this question
@@ -214,7 +240,7 @@
     Constants:              # Constants, cannot override global constants
       constantName: value
       anotherName: another
-    Variables:
+    Variables:            # Variables that change for each eam
       aVariableName:
         Type: int|float
         Values: [1, 2, 3] # A list of values, overrides range and step
@@ -225,12 +251,12 @@
         Values: [1, 2, 3] # A list of values
         Range: [0.0, 1.0] # A range to chose from when values aren't provided
         Step: 0.1         # The step inside the range.
-    Unique:
+    Unique:               # Values that must not be duplicated in one exam
       aUniqueValue: '&{aVariableName}'
       anotherUniqueValue: '&{anotherVariableName}'
-    Answers:
+    Answers:  # The answers (up to five)
       answerId:
-        Correct: yes|no
+        Correct: yes      # [yes|no] Yes if answer is correct, no otherwise
         Before: all|name|list|regex
         After: all|name|list|regex
         Follows: answerId
@@ -317,10 +343,10 @@
     Answers:
       SecondFirstName:
         Correct: yes
-        Text: 'Find the holy grail'
+        Text: 'To find the holy grail'
       SecondSecondName:
         Correct: no
-        Text: 'Find a peanut butter sandwich'
+        Text: 'To find a peanut butter sandwich'
       SecondThirdName:
         Correct: no
         Text: We don't need no stinkin' quest
@@ -391,6 +417,9 @@
       FourthFourthName:
         Correct: no
         Text: '&{answer3}'
+      FourthFifthName:
+        Correct: no
+        Text: '&{answer4}'
         
 - Question:
     Name: QuestionTheFifth
@@ -407,7 +436,7 @@
         Text: "42"
       FifthThird:
         Correct: no
-        Text: "Are the carrying a coconut?"
+        Text: "Are they carrying a coconut?"
         
 - Question:
     Name: QuestionTheSixth
@@ -425,7 +454,7 @@
         Text: "42"
       SixthThird:
         Correct: no
-        Text: "Are the carrying a coconut?"
+        Text: "Are they carrying a coconut?"
    
 - Question:
     Name: MoreQuestions01
