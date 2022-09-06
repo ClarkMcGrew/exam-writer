@@ -90,7 +90,8 @@
 ###########################################################
 # [LaTeX] The Preamble section is included in the document header, and is
 # where the user is expected to include any packages needed to build the
-# exam content.  It must include \begin{document}.
+# exam content.  It is also a good place to add latex macro definitions.
+# It must include \begin{document}.
 - Preamble: |
     % Include packages needed by the exam
     \begin{document}
@@ -110,7 +111,7 @@
     \begin{center}
     \Huge
     &{LASTNAME}, &{FIRSTNAME}\\
-    &{SID}
+    Student ID Number: &{SID}
     \end{center}
     \rule{\textwidth}{1pt}
     \bigskip
@@ -197,7 +198,7 @@
         
 ###########################################################
 # [LaTeX] The BackMatter is included after the last question and before the
-# Eplilogue.
+# Epilogue.  I mostly use it to add scratch paper to the back of the exam.
 - BackMatter: |
     % Not much to say here
 ###########################################################
