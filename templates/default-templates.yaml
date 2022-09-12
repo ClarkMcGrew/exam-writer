@@ -168,7 +168,6 @@
     %% includes a figure.  The predefined variables are NAME, NUMBER,
     %% POINTS, TEXT, FIGURE, SOLUTION and ANSWERS
     \textbf{&{NUMBER}.} &{TEXT}
-    \newline
     \begin{minipage}[h!]{\answidth}
     \begin{list}{}{\listdesc}
     &{ANSWERS}
