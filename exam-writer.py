@@ -12,6 +12,7 @@ import re
 import sys
 import json
 import pickle
+import math
 
 parser = argparse.ArgumentParser(
     description="Write an exam based on YAML input files")
@@ -539,7 +540,7 @@ class Exam(object):
         elif "QuestionTemplate" in d:
             self.questionTemplate = d["QuestionTemplate"]
         elif "QuestionWithFigureTemplate" in d:
-            self.questionWithFigTemplate = d["QuestionWithFigureTemplate"]
+            self.questionWithFigureTemplate = d["QuestionWithFigureTemplate"]
         elif "AnswerTemplate" in d: self.answerTemplate = d["AnswerTemplate"]
 
         elif "ExamTemplate" in d: self.examTemplate = d["ExamTemplate"]
@@ -678,7 +679,10 @@ def ExpandExpression(input: str) -> str:
     if parse == None: return input
     sigfig = parse[2]
     if sigfig != None and len(sigfig) < 1: sigfig = None
-    expr_string = parse[3].translate(str.maketrans('','',string.whitespace))
+    # Next expression strips all whitespace
+    # expr_string = parse[3].translate(str.maketrans('','',string.whitespace))
+    # Next expression strips new lines.
+    expr_string = parse[3].translate(str.maketrans('','','\n\r'))
     try:
         expr = eval(expr_string)
     except:
