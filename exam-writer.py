@@ -470,7 +470,7 @@ class Versions(object):
         self.defaults = dict()
         if "Defaults" in d: self.defaults = d["Defaults"]
         if "List" in d: self.HandleList(d["List"])
-        if "CSVFile" in d: self. HandleCSV(d["CSVFile"])
+        if "CSVFile" in d: self.HandleCSV(d["CSVFile"])
 
     ## Implement parsing the List of versions from the YAML file
     def HandleList(self, d):
@@ -497,7 +497,7 @@ class Versions(object):
                 reader = csv.DictReader(f,fieldnames=fields)
                 for v in reader:
                     vers = dict()
-                    for k in v:
+                    for k in fields:
                         # REJECT dummy fields
                         if 'DUMMY' in k: continue
                         if 'Dummy' in k: continue
@@ -532,8 +532,20 @@ class Exam(object):
 
         if "Title" in d: self.title = d["Title"]
         elif "BaseName" in d: self.baseName = d["BaseName"]
-        elif "Constants" in d: self.constants = MakeConsts(d["Constants"])
-        elif "Variables" in d: self.variables = MakeValues(d["Variables"])
+        elif "Constants" in d:
+            vals = MakeConsts(d["Constants"])
+            for key in vals:
+                if key in self.constants:
+                    raise ValueError("Duplicate constant value: " + key)
+                else:
+                    self.constants[key] = vals[key]
+        elif "Variables" in d:
+            vals = MakeValues(d["Variables"])
+            for key in vals:
+                if key in self.variables:
+                    raise ValueError("Duplicate global variable: " + key)
+                else:
+                    self.variables[key] = vals[key]
         elif "Questions" in d: self.questions = Questions(d["Questions"])
         elif "Versions" in d: self.versions = Versions(d["Versions"])
         elif "Question" in d: self.buildQuestion(d["Question"])
@@ -1045,7 +1057,7 @@ class ExamInstance(object):
             key += ", "
             key += "\"Answers\""
             key += ", "
-            key += "\"Name\""
+            key += "\"Basename\""
             for k in self.version: key += ", \"" + k + "\""
             key += "\n"
             return key
@@ -1117,17 +1129,29 @@ class QuestionInstance(object):
         while not uniqueOK:
             uniqueOK = True
             uniq = dict()
+            vals = dict()
             for k in self.question.unique:
                 u = self.question.unique[k]
                 s = ExpandString(str(u.get()),self.locals)
-                if s in uniq:
-                    uniqueOK = False
-                    break
+                if s in uniq: uniqueOK = False
                 uniq[s] = k
+                vals[k] = s
             if not uniqueOK:
                 self.UpdateVariables()
-            brake -= 1
-            if brake < 0: raise RuntimeError("Cannot find unique set of values")
+                brake -= 1
+            if brake < 0:
+                print("Cannot find unique set of values for "
+                      + self.question.name)
+                for kk in self.question.variables:
+                    print(kk,
+                          ExpandString(str(self.question.variables[kk].get()),
+                                       self.locals))
+                for kk in self.question.constants:
+                    print(kk,
+                          ExpandString(str(self.question.constants[kk].get()),
+                                       self.locals))
+                print("Uniques ", vals)
+                sys.exit(1)
         for s in uniq:
             self.locals[uniq[s]] = s
 
