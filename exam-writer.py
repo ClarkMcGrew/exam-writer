@@ -1052,22 +1052,22 @@ class ExamInstance(object):
         key = ""
         if header:
             key += "\"Copy\""
-            key += ", "
+            key += ","
             key += "\"Questions\""
-            key += ", "
+            key += ","
             key += "\"Answers\""
-            key += ", "
+            key += ","
             key += "\"Basename\""
-            for k in self.version: key += ", \"" + k + "\""
+            for k in self.version: key += ",\"" + k + "\""
             key += "\n"
             return key
         key += str(self.copy)
-        key += ", " + str(len(self.questionList))
-        key += ", \""
+        key += "," + str(len(self.questionList))
+        key += ",\""
         for q in self.questionList: key += q.CorrectAnswer() + ";"
         key += "\""
-        key += ", \"" + self.name + "\""
-        for k in self.version: key += ", \"" + str(self.version[k]) + "\""
+        key += ",\"" + self.name + "\""
+        for k in self.version: key += ",\"" + str(self.version[k]) + "\""
         key += "\n"
         return key
 
