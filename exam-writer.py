@@ -1035,7 +1035,14 @@ class ExamInstance(object):
         for item in range(0,len(chosen)):
             choice = chosen[item]
             q = self.exam.pool[choice]
-            self.questionList.append(QuestionInstance(self,q,item+1))
+            ok = False
+            brake = 10
+            while not ok and brake > 0:
+                question = QuestionInstance(self,q,item+1)
+                ok = question.ValidateQuestion()
+                brake = brake - 1
+            if brake < 1: raise RuntimeError("Can't find good answers")
+            self.questionList.append(question)
 
         questions = ""
         for question in self.questionList: questions += question.MakeQuestion()
@@ -1105,6 +1112,7 @@ class QuestionInstance(object):
 
         # Copy the global instances into the local scope and then
         # override with the question constants and variables.
+        ok = False
         self.locals.update(examInstance.globals)
         self.UpdateVariables()
         self.AddUniques()
