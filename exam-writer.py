@@ -1047,6 +1047,15 @@ class ExamInstance(object):
         exam = ExpandString(exam,self.globals)
         return exam
 
+    def ValidateExam(self):
+        print("Validate",self.name)
+        validExam = True
+        for q in self.questionList:
+            if not q.ValidateQuestion():
+                validExam = False
+                print("Invalid question", q.QuestionName())
+        return validExam
+
     ## Return a CSV line suitable for including in an answer key
     def MakeKey(self,header=False) -> str:
         key = ""
@@ -1058,6 +1067,8 @@ class ExamInstance(object):
             key += "\"Answers\""
             key += ","
             key += "\"Basename\""
+            key += ","
+            key += "\"QuestionNames\""
             for k in self.version: key += ",\"" + k + "\""
             key += "\n"
             return key
@@ -1067,6 +1078,9 @@ class ExamInstance(object):
         for q in self.questionList: key += q.CorrectAnswer() + ";"
         key += "\""
         key += ",\"" + self.name + "\""
+        key += ",\""
+        for q in self.questionList: key += q.QuestionName() + ";"
+        key += "\""
         for k in self.version: key += ",\"" + str(self.version[k]) + "\""
         key += "\n"
         return key
@@ -1155,6 +1169,42 @@ class QuestionInstance(object):
         for s in uniq:
             self.locals[uniq[s]] = s
 
+    def ValidateQuestion(self):
+        aDict = dict()
+        questionOK = True
+        # Check if there are duplicate answers for the question.
+        for answer in self.answerList:
+            txt = answer.locals["TEXT"];
+            txt = ExpandString(str(txt),answer.locals)
+            if txt in aDict:
+                questionOK = False;
+                aDict[txt].append(answer)
+            else:
+                aDict[txt] = [answer]
+        if questionOK: return questionOK
+        # The question has duplicated answers.  Check each set of
+        # duplicate answers, and if any of the set is the correct
+        # answer mark all of the set as correct.
+        for k in aDict:
+            if len(aDict[k]) < 2: continue
+            correctDuplicate = False
+            for a in aDict[k]:
+                if a.locals["ITEM"] in self.correctAnswer:
+                    correctDuplicate = True
+            if correctDuplicate:
+                for a in aDict[k]:
+                    print("Duplicate Answer",a.AnswerName(),a.locals["ITEM"])
+                    if a.locals["ITEM"] not in self.correctAnswer:
+                        self.correctAnswer += a.locals["ITEM"]
+        # There is a question with multiple correct answers
+        # (duplicates).  Flag that by marking the correct answer as
+        # lower case.  When grading any lower case answer should be
+        # considered correct. (e.g. "ab" means both a and b are
+        # correct).
+        if not questionOK and len(self.correctAnswer) > 1:
+            self.correctAnswer = self.correctAnswer.lower()
+        return questionOK
+
     ## Build a single question for the test.
     #
     # This builds a template string, and then substitutes
@@ -1177,6 +1227,9 @@ class QuestionInstance(object):
         question += "%% Finish Question " + self.question.name + "\n"
         question = ExpandString(question,self.locals)
         return question
+
+    def QuestionName(self) -> str:
+        return self.question.name
 
     def CorrectAnswer(self) -> str:
         return self.correctAnswer
@@ -1220,6 +1273,9 @@ class AnswerInstance(object):
         answer = ExpandString(answer,self.locals)
         return answer
 
+    def AnswerName(self) -> str :
+        return self.answer.name
+
 ######################################################################
 # The main code begins here.
 
@@ -1249,7 +1305,9 @@ if len(exams) < 1:
 key += exams[0].MakeKey(True)
 
 # Print each copy of the exam and build the answer keys
+invalidExam = 0
 for inst in exams:
+    if not inst.ValidateExam(): invalidExam += 1
     key += inst.MakeKey()
     if not options.dryRun:
         filename = inst.name+".tex"
@@ -1268,6 +1326,8 @@ if not options.dryRun and not options.pickle:
     filename = exams[0].exam.baseName+".pickle"
     print("Pickle to", filename)
     with open(filename,"wb") as file: pickle.dump(exams,file)
+
+if invalidExam > 0: print("WARNING: Invalid question on",invalidExam,"exams")
 
 # A GPL3 License
 #
