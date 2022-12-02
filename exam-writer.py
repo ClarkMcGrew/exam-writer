@@ -730,10 +730,13 @@ def SignificantFigures(input,sigfig) -> str:
     if general: value = ("{:g}").format(float(value))
     if not latex: return value.rstrip(".")
     # Turn the value into a LaTeX number
-    parse = re.search("([0-9.]+)[Ee]\+([0-9]+)",value)
+    parse = re.search("([0-9.]*)[Ee]([+-])([0-9]*)",value)
     if not parse: return value.rstrip(".")
-    value  = "\\ensuremath{" + parse.group(1).rstrip(".") \
-        +"\\times{}10^{" +parse.group(2).lstrip("0") +"}}"
+    mant = parse.group(1).rstrip(".")
+    sign = parse.group(2)
+    if sign == "+": sign = ""
+    expo = parse.group(3).lstrip("0")
+    value  = "\\ensuremath{" +  mant +"\\times{}10^{" + sign + expo +"}}"
     return value
 
 ################################################################
