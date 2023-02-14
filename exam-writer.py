@@ -13,6 +13,7 @@ import sys
 import json
 import pickle
 import math
+import io
 
 parser = argparse.ArgumentParser(
     description="Write an exam based on YAML input files")
@@ -493,7 +494,7 @@ class Versions(object):
         fields = d["Fields"]
         file = d["Name"]
         try:
-            with open(file,"r") as f:
+            with io.open(file,"r",encoding="ascii",errors="ignore") as f:
                 reader = csv.DictReader(f,fieldnames=fields)
                 for v in reader:
                     vers = dict()
