@@ -469,9 +469,9 @@ class Versions(object):
         self.inputs = list()
         # A dictionary used to initialize a particular version dictionary.
         self.defaults = dict()
-        if "Defaults" in d: self.defaults = d["Defaults"]
         if "List" in d: self.HandleList(d["List"])
         if "CSVFile" in d: self.HandleCSV(d["CSVFile"])
+        if "Defaults" in d: self.defaults = d["Defaults"]
 
     ## Implement parsing the List of versions from the YAML file
     def HandleList(self, d):
