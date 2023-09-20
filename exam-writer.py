@@ -201,7 +201,8 @@ class RandomRangeValue(Value):
 
     ## Choose a new value from the range.
     def update(self) -> str:
-        i = int((self.maximum-self.minimum)/self.step) + 1
+        i = int((self.maximum-self.minimum)/self.step+1E-6)
+        if i<0: i = 0
         v = self.minimum + self.step*random.randint(0,i)
         if self.type == "int": v = int(v)
         if self.type == "float": v = float(v)
@@ -736,7 +737,9 @@ def SignificantFigures(input,sigfig) -> str:
         mantSign = "-"
         value = value[1:]
     parse = re.search("([0-9.]*)[Ee]([+-])([0-9]*)",value)
-    if not parse: return value.rstrip(".")
+    if not parse:
+        value = value.rstrip(".")
+        return mantSign+value
     mant = parse.group(1).rstrip(".")
     sign = parse.group(2)
     if sign == "+": sign = ""
